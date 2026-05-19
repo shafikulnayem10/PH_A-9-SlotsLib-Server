@@ -6,7 +6,6 @@ import { MongoClient, ServerApiVersion } from 'mongodb';
 const app = express();
 const port = process.env.PORT || 5000;
 
-
 app.use(cors({
     origin: [
       "http://localhost:3000", 
@@ -28,16 +27,30 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-   
+    
+    await client.connect();
+    
     const db = client.db("slotslibDB");
     const facilitiesCollection = db.collection("facilities");
 
-   
+  
+    app.post('/facilities', async (req, res) => {
+        try {
+            const newFacility = req.body;
+            
+           
+            const result = await facilitiesCollection.insertOne(newFacility);
+            
+            res.status(201).send(result);
+        } catch (error) {
+            console.error("Error inserting facility:", error);
+            res.status(500).send({ message: "Failed to add facility data", error });
+        }
+    });
 
    
-    app.get('/api/featured-facilities', async (req, res) => {
+    app.get('/featured-facilities', async (req, res) => {
         try {
-           
             const result = await facilitiesCollection.find().limit(6).toArray();
             res.send(result);
         } catch (error) {
@@ -45,7 +58,6 @@ async function run() {
         }
     });
 
-    await client.connect();
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
