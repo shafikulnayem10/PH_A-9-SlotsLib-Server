@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import 'dotenv/config';
 import { MongoClient, ServerApiVersion, ObjectId } from 'mongodb';
+import { createRemoteJWKSet, jwtVerify } from 'jose-cjs'; 
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -14,6 +15,25 @@ app.use(cors({
     credentials: true
 }));
 app.use(express.json());
+
+
+const JWKS = createRemoteJWKSet(
+  new URL(`${process.env.CLIENT_URL}/api/auth/jwks`)
+);
+
+
+const verifyToken = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.split(" ")[1];
+  if (!token) return res.status(401).json({ message: "Unauthorized" });
+  try {
+    const { payload } = await jwtVerify(token, JWKS);
+    req.user = payload;
+    next();
+  } catch (error) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+};
 
 const uri = `mongodb+srv://${process.env.MONGODB_ADMIN_USERNAME}:${process.env.MONGODB_ADMIN_PASSWORD}@cluster0.izoxutw.mongodb.net/?appName=Cluster0`;
 
@@ -33,8 +53,8 @@ async function run() {
     const facilitiesCollection = db.collection("facilities");
     const bookingsCollection = db.collection("bookings");
 
-    // Add Facility
-    app.post('/facilities', async (req, res) => {
+    
+    app.post('/facilities', verifyToken, async (req, res) => {
         try {
             const newFacility = req.body;
             const result = await facilitiesCollection.insertOne(newFacility);
@@ -44,22 +64,18 @@ async function run() {
         }
     });
 
-    // Get All Facilities with Search & Filter
+    
     app.get('/facilities', async (req, res) => {
         try {
             const search = req.query.search || "";
             const sport = req.query.sport || "";
-
             const query = {};
-
             if (search) {
-                query.facility_name = { $regex: search, $options: "i" }; 
+                query.facility_name = { $regex: search, $options: "i" };
             }
-
             if (sport && sport !== "all") {
                 query.facility_type = { $in: [sport] };
             }
-
             const result = await facilitiesCollection.find(query).toArray();
             res.send(result);
         } catch (error) {
@@ -67,8 +83,8 @@ async function run() {
         }
     });
 
-    // Get Single Facility
-    app.get('/facilities/:id', async (req, res) => {
+    
+    app.get('/facilities/:id', verifyToken, async (req, res) => {
         try {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
@@ -82,20 +98,31 @@ async function run() {
         }
     });
 
-    // Delete Facility
-    app.delete('/facilities/:id', async (req, res) => {
-        try {
-            const id = req.params.id;
-            const query = { _id: new ObjectId(id) };
-            const result = await facilitiesCollection.deleteOne(query);
-            res.send(result);
-        } catch (error) {
-            res.status(500).send({ message: "Failed to delete facility", error });
-        }
-    });
+   
+  app.delete('/facilities/:id', verifyToken, async (req, res) => {
+    try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
 
-    // Update Facility
-    app.put('/facilities/:id', async (req, res) => {
+        const facility = await facilitiesCollection.findOne(query);
+        if (!facility) {
+            return res.status(404).send({ message: "Facility not found" });
+        }
+
+        const facilityResult = await facilitiesCollection.deleteOne(query);
+        await bookingsCollection.deleteMany({ facility_id: id });
+
+        res.send({ 
+            facilityDeleted: facilityResult,
+            message: "Facility and related bookings deleted successfully" 
+        });
+    } catch (error) {
+        res.status(500).send({ message: "Failed to delete facility", error });
+    }
+});
+
+    
+    app.put('/facilities/:id', verifyToken, async (req, res) => {
         try {
             const id = req.params.id;
             const updatedData = req.body;
@@ -119,8 +146,8 @@ async function run() {
         }
     });
 
-    // Get My Facilities
-    app.get('/my-facilities', async (req, res) => {
+    
+    app.get('/my-facilities', verifyToken, async (req, res) => {
         try {
             const email = req.query.email;
             if (!email) {
@@ -134,8 +161,8 @@ async function run() {
         }
     });
 
-    // Add Booking
-    app.post('/bookings', async (req, res) => {
+  
+    app.post('/bookings', verifyToken, async (req, res) => {
         try {
             const bookingData = req.body;
             const result = await bookingsCollection.insertOne(bookingData);
@@ -145,8 +172,8 @@ async function run() {
         }
     });
 
-    // Get My Bookings
-    app.get('/my-bookings', async (req, res) => {
+    
+    app.get('/my-bookings', verifyToken, async (req, res) => {
         try {
             const email = req.query.email;
             if (!email) {
@@ -160,8 +187,8 @@ async function run() {
         }
     });
 
-    // Delete Booking
-    app.delete('/bookings/:id', async (req, res) => {
+   
+    app.delete('/bookings/:id', verifyToken, async (req, res) => {
         try {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
@@ -172,7 +199,7 @@ async function run() {
         }
     });
 
-    // Featured Facilities
+   
     app.get('/featured-facilities', async (req, res) => {
         try {
             const result = await facilitiesCollection.find().limit(6).toArray();
