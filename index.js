@@ -33,18 +33,27 @@ async function run() {
     const db = client.db("slotslibDB");
     const facilitiesCollection = db.collection("facilities");
 
-  
+
     app.post('/facilities', async (req, res) => {
         try {
             const newFacility = req.body;
-            
-           
             const result = await facilitiesCollection.insertOne(newFacility);
-            
             res.status(201).send(result);
         } catch (error) {
             console.error("Error inserting facility:", error);
             res.status(500).send({ message: "Failed to add facility data", error });
+        }
+    });
+
+  
+    app.get('/facilities', async (req, res) => {
+        try {
+            
+            const result = await facilitiesCollection.find().toArray();
+            res.send(result);
+        } catch (error) {
+            console.error("Error fetching all facilities:", error);
+            res.status(500).send({ message: "All facilities fetching failed", error });
         }
     });
 
@@ -72,5 +81,5 @@ app.get('/', (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`Server is moving on port: ${port}`);
+    console.log(`Server is running on port: ${port}`);
 });
