@@ -73,6 +73,24 @@ async function run() {
             res.status(500).send({ message: "Single facility fetching failed", error });
         }
     });
+app.delete('/facilities/:id', async (req, res) => {
+    try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await facilitiesCollection.deleteOne(query);
+        
+        res.send(result);
+    } catch (error) {
+        console.error("Error deleting facility:", error);
+        res.status(500).send({ message: "Failed to delete facility", error });
+    }
+});
+
+
+
+
+
+
     app.get('/my-facilities', async (req, res) => {
     try {
         const email = req.query.email;
