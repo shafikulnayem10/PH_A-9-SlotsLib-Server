@@ -73,6 +73,23 @@ async function run() {
             res.status(500).send({ message: "Single facility fetching failed", error });
         }
     });
+    app.get('/my-facilities', async (req, res) => {
+    try {
+        const email = req.query.email;
+        if (!email) {
+            return res.status(400).send({ message: "Owner email is required" });
+        }
+
+
+        const query = { owner_email: email }; 
+        const result = await facilitiesCollection.find(query).toArray();
+        
+        res.send(result);
+    } catch (error) {
+        console.error("Error fetching owner facilities:", error);
+        res.status(500).send({ message: "Failed to load owner facilities", error });
+    }
+});
 
    
     app.post('/bookings', async (req, res) => {
