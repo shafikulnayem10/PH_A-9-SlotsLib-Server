@@ -1,7 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import 'dotenv/config';
-import { MongoClient, ServerApiVersion } from 'mongodb';
+
+import { MongoClient, ServerApiVersion, ObjectId } from 'mongodb';
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -27,11 +28,12 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    
     await client.connect();
     
     const db = client.db("slotslibDB");
     const facilitiesCollection = db.collection("facilities");
+  
+    
 
 
     app.post('/facilities', async (req, res) => {
@@ -45,10 +47,9 @@ async function run() {
         }
     });
 
-  
+    
     app.get('/facilities', async (req, res) => {
         try {
-            
             const result = await facilitiesCollection.find().toArray();
             res.send(result);
         } catch (error) {
@@ -56,6 +57,25 @@ async function run() {
             res.status(500).send({ message: "All facilities fetching failed", error });
         }
     });
+
+    
+    app.get('/facilities/:id', async (req, res) => {
+        try {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await facilitiesCollection.findOne(query);
+            
+            if (!result) {
+                return res.status(404).send({ message: "Facility not found" });
+            }
+            res.send(result);
+        } catch (error) {
+            console.error("Error fetching single facility:", error);
+            res.status(500).send({ message: "Single facility fetching failed", error });
+        }
+    });
+
+
 
    
     app.get('/featured-facilities', async (req, res) => {
