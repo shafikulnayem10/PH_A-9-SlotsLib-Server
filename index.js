@@ -86,6 +86,33 @@ app.delete('/facilities/:id', async (req, res) => {
     }
 });
 
+app.put('/facilities/:id', async (req, res) => {
+    try {
+        const id = req.params.id;
+        const updatedData = req.body;
+        const query = { _id: new ObjectId(id) };
+        
+        const updateDoc = {
+            $set: {
+                facility_name: updatedData.facility_name,
+                facility_type: updatedData.facility_type,
+                imageUrl: updatedData.imageUrl,
+                location: updatedData.location,
+                price_per_hour: updatedData.price_per_hour,
+                capacity: updatedData.capacity,
+                available_slots: updatedData.available_slots,
+                description: updatedData.description
+            }
+        };
+
+        const result = await facilitiesCollection.updateOne(query, updateDoc);
+        res.send(result);
+    } catch (error) {
+        console.error("Error updating facility:", error);
+        res.status(500).send({ message: "Failed to update facility data", error });
+    }
+});
+
 
 
 
