@@ -9,7 +9,7 @@ const port = process.env.PORT || 5000;
 
 app.use(cors({
     origin: [
-      "http://localhost:3000", 
+      "https://ph-a-9-slots-lib.vercel.app", 
       process.env.NEXT_PUBLIC_APP_URL
     ].filter(Boolean),
     credentials: true
