@@ -104,6 +104,18 @@ app.get('/my-bookings', async (req, res) => {
         res.status(500).send({ message: "Failed to load bookings", error });
     }
 });
+app.delete('/bookings/:id', async (req, res) => {
+        try {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await bookingsCollection.deleteOne(query);
+            res.send(result);
+        } catch (error) {
+            console.error("Error deleting booking:", error);
+            res.status(500).send({ message: "Failed to cancel booking", error });
+        }
+    });
+    
     app.get('/featured-facilities', async (req, res) => {
         try {
             const result = await facilitiesCollection.find().limit(6).toArray();
